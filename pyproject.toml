@@ -1,0 +1,10 @@
+[project]
+name = "logjam"
+version = "0.1.0"
+description = "A configurable tool for filtering text files."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv]
+package=true
