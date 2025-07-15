@@ -9,5 +9,10 @@ dependencies = []
 [tool.uv]
 package=true
 
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]
+
 [project.scripts]
 logjam = "logjam.cli.main:main"
