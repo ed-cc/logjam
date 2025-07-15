@@ -16,17 +16,17 @@ class Filter:
         name: str,
         logical_operator: LogicalOperator,
         regex: bool = False,
-        filter_stings: list[str] | None = None,
+        filter_strings: list[str] | None = None,
         sub_filters: list["Filter"] | None = None,
     ):
         if not isinstance(logical_operator, LogicalOperator):
             raise ValueError("logical_operator must be an instance of LogicalOperator.")
         if not isinstance(name, str):
             raise ValueError("Filter name must be a string.")
-        if filter_stings is not None and not isinstance(filter_stings, list):
+        if filter_strings is not None and not isinstance(filter_strings, list):
             raise ValueError("filter_str must be a list of strings.")
-        if filter_stings is not None and any(
-            not isinstance(s, str) for s in filter_stings
+        if filter_strings is not None and any(
+            not isinstance(s, str) for s in filter_strings
         ):
             raise ValueError("All items in filter_str must be strings.")
         if sub_filters is not None and not isinstance(sub_filters, list):
@@ -40,7 +40,7 @@ class Filter:
         self.name = name
         self.logical_operator = logical_operator
         self.regex = regex
-        self.filter_strings = filter_stings if filter_stings is not None else []
+        self.filter_strings = filter_strings if filter_strings is not None else []
         self.sub_filters = sub_filters if sub_filters is not None else []
 
     def to_dict(self):
@@ -162,14 +162,14 @@ class FilterConfig:
             Filter(
                 name="ExampleFilter1",
                 logical_operator=LogicalOperator.AND,
-                filter_stings=["error", "critical"],
+                filter_strings=["error", "critical"],
             )
         )
         config.add_filter(
             Filter(
                 name="ExampleFilter2",
                 logical_operator=LogicalOperator.OR,
-                filter_stings=["warning", "alert"],
+                filter_strings=["warning", "alert"],
             )
         )
         return config
