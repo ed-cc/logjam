@@ -8,3 +8,6 @@ dependencies = []
 
 [tool.uv]
 package=true
+
+[project.scripts]
+logjam = "logjam.cli.main:main"
