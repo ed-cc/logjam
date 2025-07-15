@@ -60,11 +60,10 @@ class Filter:
                 return self._matches_and(line)
             case LogicalOperator.OR:
                 return self._matches_or(line)
-            case LogicalOperator.NOT_OR:
-                return self._matches_not_or(line)
-            case LogicalOperator.NOT_AND:
-                return self._matches_not_and(line)
-        raise ValueError(f"Unknown logical operator: {self.logical_operator}")
+            case LogicalOperator.NOT:
+                return self._matches_not(line)
+            case _:
+                raise ValueError(f"Unknown logical operator: {self.logical_operator}")
 
     def _matches_and(self, line: str) -> bool:
         return all(sub_filter.matches(line) for sub_filter in self.sub_filters) and all(
@@ -76,15 +75,10 @@ class Filter:
             sub_str in line for sub_str in self.filter_strings
         )
 
-    def _matches_not_or(self, line: str) -> bool:
+    def _matches_not(self, line: str) -> bool:
         return not any(
             sub_filter.matches(line) for sub_filter in self.sub_filters
         ) and not any(sub_str in line for sub_str in self.filter_strings)
-
-    def _matches_not_and(self, line: str) -> bool:
-        return not all(
-            sub_filter.matches(line) for sub_filter in self.sub_filters
-        ) and not all(sub_str in line for sub_str in self.filter_strings)
 
     @classmethod
     def from_dict(cls, data: dict):

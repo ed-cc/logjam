@@ -7,8 +7,7 @@ class LogicalOperator(Enum):
 
     AND = "AND"
     OR = "OR"
-    NOT_OR = "NOT_OR"
-    NOT_AND = "NOT_AND"
+    NOT = "NOT"
 
     @classmethod
     def from_any(cls, value: Any) -> "LogicalOperator":
@@ -19,6 +18,7 @@ class LogicalOperator(Enum):
             return value
         if isinstance(value, str):
             value = value.upper()
-        if value not in cls._value2member_map_:
-            raise ValueError(f"Invalid logical operator: {value}")
-        return LogicalOperator(cls._value2member_map_[value])
+            if value not in cls._value2member_map_:
+                raise ValueError(f"Invalid logical operator: {value}")
+            return LogicalOperator(cls._value2member_map_[value])
+        raise ValueError(f"Invalid type for logical operator: {type(value)}")
