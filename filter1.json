@@ -1,0 +1,12 @@
+{
+    "filter": {
+        "name": "filter1",
+        "logical_operator": "OR",
+        "regex": false,
+        "filter_strings": [
+            "line1",
+            "line4"
+        ],
+        "filters": []
+    }
+}

@@ -1,6 +1,6 @@
-# LogJam
+# logjam
 
-LogJam is a configurable tool for filtering text files using custom filter definitions.
+logjam is a configurable tool for filtering text files using custom filter definitions.
 
 ## Features
 
