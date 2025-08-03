@@ -1,6 +1,6 @@
-# logjam
+# LogJam
 
-logjam is a configurable tool for filtering text files using custom filter definitions.
+LogJam is a configurable tool for filtering text files using custom filter definitions.
 
 ## Features
 
@@ -23,9 +23,15 @@ python -m logjam.cli.main <filter_config.json> <input_file.txt> <output_file.txt
 python -m logjam.cli.main --example-config
 ```
 
-## Filter Config Example
+### GUI Application
 
-See `filter1.json` for a sample filter definition.
+```sh
+python -m logjam.ui.main
+```
+
+Alternatively, provide a file and an optional config as arguments:
+```sh
+python -m logjam.ui.main <input_file.txt> -f <filter_config.json>
 
 ## Requirements
 
