@@ -1,6 +1,7 @@
 from logjam.core.filter_config import FilterConfig
 from logjam.core.file_filter_processor import FileFilterProcessor
 
+
 class LogjamCLI:
     """Command Line Interface for Logjam."""
 

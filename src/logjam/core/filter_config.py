@@ -1,28 +1,5 @@
-from enum import Enum
 import json
-from typing import Any
-
-
-class LogicalOperator(Enum):
-    """Enum for logical operators used in filters."""
-
-    AND = "AND"
-    OR = "OR"
-    NOT_OR = "NOT_OR"
-    NOT_AND = "NOT_AND"
-
-    @classmethod
-    def from_any(cls, value: Any) -> "LogicalOperator":
-        """Convert a value to a LogicalOperator enum member."""
-        if value is None:
-            raise ValueError("Logical operator cannot be None")
-        if isinstance(value, cls):
-            return value
-        if isinstance(value, str):
-            value = value.upper()
-        if value not in cls._value2member_map_:
-            raise ValueError(f"Invalid logical operator: {value}")
-        return LogicalOperator(cls._value2member_map_[value])
+from logjam.core.logical_operator import LogicalOperator
 
 
 class Filter:
@@ -31,6 +8,7 @@ class Filter:
     name: str
     logical_operator: LogicalOperator
     regex: bool
+    case_sensitive: bool = False
     filter_strings: list[str]
     sub_filters: list["Filter"]
 
@@ -39,17 +17,18 @@ class Filter:
         name: str,
         logical_operator: LogicalOperator,
         regex: bool = False,
-        filter_stings: list[str] | None = None,
+        case_sensitive: bool = False,
+        filter_strings: list[str] | None = None,
         sub_filters: list["Filter"] | None = None,
     ):
         if not isinstance(logical_operator, LogicalOperator):
             raise ValueError("logical_operator must be an instance of LogicalOperator.")
         if not isinstance(name, str):
             raise ValueError("Filter name must be a string.")
-        if filter_stings is not None and not isinstance(filter_stings, list):
+        if filter_strings is not None and not isinstance(filter_strings, list):
             raise ValueError("filter_str must be a list of strings.")
-        if filter_stings is not None and any(
-            not isinstance(s, str) for s in filter_stings
+        if filter_strings is not None and any(
+            not isinstance(s, str) for s in filter_strings
         ):
             raise ValueError("All items in filter_str must be strings.")
         if sub_filters is not None and not isinstance(sub_filters, list):
@@ -63,7 +42,8 @@ class Filter:
         self.name = name
         self.logical_operator = logical_operator
         self.regex = regex
-        self.filter_strings = filter_stings if filter_stings is not None else []
+        self.case_sensitive = case_sensitive
+        self.filter_strings = filter_strings if filter_strings is not None else []
         self.sub_filters = sub_filters if sub_filters is not None else []
 
     def to_dict(self):
@@ -72,42 +52,53 @@ class Filter:
             "name": self.name,
             "logical_operator": self.logical_operator.value,
             "regex": self.regex,
+            "case_sensitive": self.case_sensitive,
             "filter_strings": self.filter_strings,
             "filters": [filter.to_dict() for filter in self.sub_filters],
         }
 
     def matches(self, line: str) -> bool:
         """Check if the line matches the filter conditions."""
+        if not self.case_sensitive:
+            line = line.lower()
+            filter_strings = [s.lower() for s in self.filter_strings]
+        else:
+            filter_strings = self.filter_strings
         match self.logical_operator:
             case LogicalOperator.AND:
-                return self._matches_and(line)
+                return self._matches_and(line, filter_strings)
             case LogicalOperator.OR:
-                return self._matches_or(line)
-            case LogicalOperator.NOT_OR:
-                return self._matches_not_or(line)
-            case LogicalOperator.NOT_AND:
-                return self._matches_not_and(line)
-        raise ValueError(f"Unknown logical operator: {self.logical_operator}")
+                return self._matches_or(line, filter_strings)
+            case LogicalOperator.NOT:
+                return self._matches_not(line, filter_strings)
+            case _:
+                raise ValueError(f"Unknown logical operator: {self.logical_operator}")
 
-    def _matches_and(self, line: str) -> bool:
+    def filter_strings_representation(self) -> str | None:
+        """Get a string representation of the filter strings, each string separated by a new line."""
+        return "\n".join(self.filter_strings) if self.filter_strings else None
+
+    def _matches_and(self, line: str, filter_strings: list[str]) -> bool:
         return all(sub_filter.matches(line) for sub_filter in self.sub_filters) and all(
-            sub_str in line for sub_str in self.filter_strings
+            sub_str in line for sub_str in filter_strings
         )
 
-    def _matches_or(self, line: str) -> bool:
+    def _matches_or(self, line: str, filter_strings: list[str]) -> bool:
         return any(sub_filter.matches(line) for sub_filter in self.sub_filters) or any(
-            sub_str in line for sub_str in self.filter_strings
+            sub_str in line for sub_str in filter_strings
         )
 
-    def _matches_not_or(self, line: str) -> bool:
+    def _matches_not(self, line: str, filter_strings: list[str]) -> bool:
         return not any(
             sub_filter.matches(line) for sub_filter in self.sub_filters
-        ) and not any(sub_str in line for sub_str in self.filter_strings)
+        ) and not any(sub_str in line for sub_str in filter_strings)
 
-    def _matches_not_and(self, line: str) -> bool:
-        return not all(
-            sub_filter.matches(line) for sub_filter in self.sub_filters
-        ) and not all(sub_str in line for sub_str in self.filter_strings)
+    def __repr__(self):
+        return (
+            f"Filter(name={self.name}, logical_operator={self.logical_operator}, "
+            f"regex={self.regex}, case_sensitive={self.case_sensitive}, "
+            f"filter_strings={self.filter_strings}, sub_filters={len(self.sub_filters)})"
+        )
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -118,6 +109,7 @@ class Filter:
             data.get("name", ""),
             LogicalOperator.from_any(data.get("logical_operator")),
             data.get("regex", False),
+            data.get("case_sensitive", False),
             data.get("filter_strings", []),
             [Filter.from_dict(sf) for sf in data.get("filters", [])],
         )
@@ -185,14 +177,14 @@ class FilterConfig:
             Filter(
                 name="ExampleFilter1",
                 logical_operator=LogicalOperator.AND,
-                filter_stings=["error", "critical"],
+                filter_strings=["error", "critical"],
             )
         )
         config.add_filter(
             Filter(
                 name="ExampleFilter2",
                 logical_operator=LogicalOperator.OR,
-                filter_stings=["warning", "alert"],
+                filter_strings=["warning", "alert"],
             )
         )
         return config
