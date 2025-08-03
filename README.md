@@ -32,6 +32,7 @@ python -m logjam.ui.main
 Alternatively, provide a file and an optional config as arguments:
 ```sh
 python -m logjam.ui.main <input_file.txt> -f <filter_config.json>
+```
 
 ## Requirements
 
