@@ -2,8 +2,8 @@ from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtWidgets import QPlainTextEdit, QWidget
 from PyQt6.QtGui import QFont, QColor, QPainter, QPaintEvent, QResizeEvent
 
-class QLogFileViewer(QPlainTextEdit):
 
+class QLogFileViewer(QPlainTextEdit):
     def __init__(self, parent=None, is_dark_theme: bool = False):
         super().__init__(parent)
         self.is_dark_theme = is_dark_theme
@@ -21,8 +21,12 @@ class QLogFileViewer(QPlainTextEdit):
         super().resizeEvent(e)
         if e is not None:
             content_rect = self.contentsRect()
-            self.number_bar.setGeometry(content_rect.left(), content_rect.top(),
-                                       self.number_bar.getWidth(), content_rect.height())
+            self.number_bar.setGeometry(
+                content_rect.left(),
+                content_rect.top(),
+                self.number_bar.getWidth(),
+                content_rect.height(),
+            )
 
     def paintEvent(self, e: QPaintEvent | None):
         """Override paint event to also update number bar"""
@@ -34,7 +38,7 @@ class QLogFileViewer(QPlainTextEdit):
         self.number_bar.updateWidth()
 
     class NumberBar(QWidget):
-        '''class that deifnes textEditor numberBar'''
+        """class that deifnes textEditor numberBar"""
 
         def __init__(self, editor):
             super().__init__(editor)
@@ -59,7 +63,11 @@ class QLogFileViewer(QPlainTextEdit):
 
             while block.isValid():
                 blockNumber = block.blockNumber()
-                block_top = self.editor.blockBoundingGeometry(block).translated(self.editor.contentOffset()).top()
+                block_top = (
+                    self.editor.blockBoundingGeometry(block)
+                    .translated(self.editor.contentOffset())
+                    .top()
+                )
 
                 if not block.isVisible() or block_top >= a0.rect().bottom():
                     break
@@ -79,8 +87,15 @@ class QLogFileViewer(QPlainTextEdit):
                 painter.setFont(self._font)
 
                 margin = 5
-                paint_rect = QRect(0, int(block_top), self.width() - margin, self.editor.fontMetrics().height())
-                painter.drawText(paint_rect, Qt.AlignmentFlag.AlignRight, str(blockNumber+1))
+                paint_rect = QRect(
+                    0,
+                    int(block_top),
+                    self.width() - margin,
+                    self.editor.fontMetrics().height(),
+                )
+                painter.drawText(
+                    paint_rect, Qt.AlignmentFlag.AlignRight, str(blockNumber + 1)
+                )
 
                 block = block.next()
 

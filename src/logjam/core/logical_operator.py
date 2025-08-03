@@ -22,7 +22,7 @@ class LogicalOperator(Enum):
                 raise ValueError(f"Invalid logical operator: {value}")
             return LogicalOperator(cls._value2member_map_[value])
         raise ValueError(f"Invalid type for logical operator: {type(value)}")
-    
+
     @staticmethod
     def get_all_operators() -> list[str]:
         """Get a list of all logical operator names."""

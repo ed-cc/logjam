@@ -8,8 +8,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
 class WorkerSignals(QObject):
     finished = pyqtSignal(str)
+
 
 class Worker(QRunnable):
     def __init__(self, fn, *args, **kwargs):
@@ -23,8 +25,9 @@ class Worker(QRunnable):
         result = self.fn(*self.args, **self.kwargs)
         self.signals.finished.emit(result)
 
+
 class AppController:
-    main_window: 'MainWindow'
+    main_window: "MainWindow"
     threadpool: QThreadPool
     settings: QSettings
     last_opened_file: str | None
@@ -32,7 +35,7 @@ class AppController:
     file_filter_processor: FileFilterProcessor
     filter_config: FilterConfig | None = None
 
-    def __init__(self, main_window: 'MainWindow'):
+    def __init__(self, main_window: "MainWindow"):
         self.main_window = main_window
         self.threadpool = QThreadPool()
         self.settings = QSettings("LogJam", "LogJamApp")
@@ -94,7 +97,9 @@ class AppController:
             logger.warning("_load_filters_task called but last_opened_config is None")
             return ""
 
-    def _setup_file_filter_processor(self, config_path: Optional[str] = None, file_path: Optional[str] = None):
+    def _setup_file_filter_processor(
+        self, config_path: Optional[str] = None, file_path: Optional[str] = None
+    ):
         logger.info("Setting up file filter processor")
         self.file_filter_processor = FileFilterProcessor(self.filter_config, file_path)
         return self._run_filter_processing()
@@ -111,12 +116,16 @@ class AppController:
             logger.error("FileFilterProcessor is not set up")
             raise ValueError("FileFilterProcessor is not set up.")
 
-        if (self.file_filter_processor.filter_config is not None and
-            self.file_filter_processor.file_path is not None):
+        if (
+            self.file_filter_processor.filter_config is not None
+            and self.file_filter_processor.file_path is not None
+        ):
             logger.info("Running filter processing with config and file path")
             filtered_lines = self.file_filter_processor.process_filters(None)
             result = "\n".join(line.line_content for line in filtered_lines)
-            logger.info(f"Filter processing completed, {len(filtered_lines)} lines filtered")
+            logger.info(
+                f"Filter processing completed, {len(filtered_lines)} lines filtered"
+            )
             return result
         else:
             logger.info("Skipping filter processing - missing config or file path")

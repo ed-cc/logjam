@@ -5,6 +5,7 @@ from logjam.core.logical_operator import LogicalOperator
 
 logger = logging.getLogger(__name__)
 
+
 class EditFilterDialog(QtWidgets.QDialog):
     def __init__(self, filter: Filter, parent=None, is_new: bool = False):
         """Initialize the dialog for editing or creating a filter."""
@@ -36,13 +37,19 @@ class EditFilterDialog(QtWidgets.QDialog):
         self.filter_criteria_label = QtWidgets.QLabel("Filter Criteria:")
         self.filter_criteria_input = QtWidgets.QTextEdit(self)
         if self.filter:
-            self.filter_criteria_input.setPlainText(self.filter.filter_strings_representation())
+            self.filter_criteria_input.setPlainText(
+                self.filter.filter_strings_representation()
+            )
         else:
-            self.filter_criteria_input.setPlaceholderText("Enter filter criteria separated by new lines...")
+            self.filter_criteria_input.setPlaceholderText(
+                "Enter filter criteria separated by new lines..."
+            )
         self.filter_criteria_regex = QtWidgets.QCheckBox("Use Regular Expression", self)
         if self.filter and self.filter.regex:
             self.filter_criteria_regex.setChecked(True)
-        self.filter_criteria_case_sensitive = QtWidgets.QCheckBox("Case Sensitive", self)
+        self.filter_criteria_case_sensitive = QtWidgets.QCheckBox(
+            "Case Sensitive", self
+        )
         if self.filter and self.filter.case_sensitive:
             self.filter_criteria_case_sensitive.setChecked(self.filter.case_sensitive)
 
@@ -54,7 +61,9 @@ class EditFilterDialog(QtWidgets.QDialog):
         self.main_layout.addWidget(self.filter_criteria_input)
         self.main_layout.addWidget(self.filter_criteria_regex)
         self.main_layout.addWidget(self.filter_criteria_case_sensitive)
-        self.button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Ok)
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.StandardButton.Ok
+        )
         self.button_box.accepted.connect(self.accept)
         self.main_layout.addWidget(self.button_box)
         self.button_box.addButton(QtWidgets.QDialogButtonBox.StandardButton.Cancel)
@@ -64,7 +73,9 @@ class EditFilterDialog(QtWidgets.QDialog):
         """Override accept to validate and save the filter."""
         filter_name = self.filter_name_input.text().strip()
         if not filter_name:
-            QtWidgets.QMessageBox.warning(self, "Invalid Input", "Filter name cannot be empty.")
+            QtWidgets.QMessageBox.warning(
+                self, "Invalid Input", "Filter name cannot be empty."
+            )
             return
 
         logical_operator = self.filter_logic_input.currentText()
@@ -73,7 +84,9 @@ class EditFilterDialog(QtWidgets.QDialog):
         case_sensitive = self.filter_criteria_case_sensitive.isChecked()
 
         if not filter_strings or all(not s.strip() for s in filter_strings):
-            QtWidgets.QMessageBox.warning(self, "Invalid Input", "Filter criteria cannot be empty.")
+            QtWidgets.QMessageBox.warning(
+                self, "Invalid Input", "Filter criteria cannot be empty."
+            )
             return
 
         self.filter.name = filter_name
@@ -85,4 +98,3 @@ class EditFilterDialog(QtWidgets.QDialog):
         super().accept()
         self.done(QtWidgets.QDialog.DialogCode.Accepted)
         logger.info(f"New filter created/edited: {repr(self.filter)}")
-

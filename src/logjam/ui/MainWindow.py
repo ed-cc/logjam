@@ -17,7 +17,9 @@ class Ui_MainWindow(object):
         self.centralwidget.setObjectName("centralwidget")
         self.textBrowser = QtWidgets.QTextBrowser(parent=self.centralwidget)
         self.textBrowser.setGeometry(QtCore.QRect(10, 10, 851, 471))
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Maximum, QtWidgets.QSizePolicy.Policy.Maximum)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Maximum, QtWidgets.QSizePolicy.Policy.Maximum
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.textBrowser.sizePolicy().hasHeightForWidth())
@@ -76,6 +78,8 @@ class Ui_MainWindow(object):
         self.actionOpen.setText(_translate("MainWindow", "Open File"))
         self.actionOpen_Filter.setText(_translate("MainWindow", "Open Filter"))
         self.actionNew_Filter.setText(_translate("MainWindow", "New Filter"))
-        self.actionEdit_Current_Filter.setText(_translate("MainWindow", "Edit Current Filter"))
+        self.actionEdit_Current_Filter.setText(
+            _translate("MainWindow", "Edit Current Filter")
+        )
         self.actionSave.setText(_translate("MainWindow", "Save Filter"))
         self.actionSave_As.setText(_translate("MainWindow", "Save Filter As"))

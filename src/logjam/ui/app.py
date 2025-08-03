@@ -36,7 +36,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.actionSave_As.triggered.connect(self.save_filter_as)
         self.actionSave.triggered.connect(self.save_current_filter)
 
-
         self.actionOpen.setShortcut("Ctrl+O")
         self.actionOpen_Filter.setShortcut("Ctrl+Shift+O")
         self.actionNew_Filter.setShortcut("Ctrl+N")
@@ -82,11 +81,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         logger.info(f"Detected theme: {'dark' if is_dark else 'light'}")
 
         # Create the new QLogFileViewer
-        self.textBrowser = QLogFileViewer(parent=self.centralwidget, is_dark_theme=is_dark)
+        self.textBrowser = QLogFileViewer(
+            parent=self.centralwidget, is_dark_theme=is_dark
+        )
 
         # Clear any existing layout and create a new one
         if self.centralwidget.layout():
-            QtWidgets.QWidget().setLayout(self.centralwidget.layout())  # Remove existing layout
+            QtWidgets.QWidget().setLayout(
+                self.centralwidget.layout()
+            )  # Remove existing layout
 
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(1, 1, 1, 1)
@@ -95,14 +98,27 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Set monospaced font with cross-platform compatibility
         from PyQt6.QtGui import QFont
+
         monospace_font = QFont()
-        monospace_font.setFamilies(["SF Mono", "Consolas", "Menlo", "Monaco", "DejaVu Sans Mono", "Courier New", "monospace"])
+        monospace_font.setFamilies(
+            [
+                "SF Mono",
+                "Consolas",
+                "Menlo",
+                "Monaco",
+                "DejaVu Sans Mono",
+                "Courier New",
+                "monospace",
+            ]
+        )
         monospace_font.setPointSize(10)
         self.textBrowser.setFont(monospace_font)
 
         # Ensure the text browser expands to fill available space
-        self.textBrowser.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding,
-                                      QtWidgets.QSizePolicy.Policy.Expanding)
+        self.textBrowser.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
         self.textBrowser.setObjectName("textBrowser")
         logger.debug("QLogFileViewer created and configured")
 
@@ -118,7 +134,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             logger.warning("Controller not set")
             return
         file_dialog = QtWidgets.QFileDialog(self)
-        file_path, _ = file_dialog.getOpenFileName(self, "Open File", "", "Text files (*.txt *.log);;All Files (*)")
+        file_path, _ = file_dialog.getOpenFileName(
+            self, "Open File", "", "Text files (*.txt *.log);;All Files (*)"
+        )
         if file_path:
             logger.info(f"User selected file: {file_path}")
             file_name = os.path.basename(file_path)
@@ -136,7 +154,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             logger.warning("Controller not set")
             return
         file_dialog = QtWidgets.QFileDialog(self)
-        file_path, _ = file_dialog.getOpenFileName(self, "Open Filter", "", "Json filter files (*.json);;All Files (*)")
+        file_path, _ = file_dialog.getOpenFileName(
+            self, "Open Filter", "", "Json filter files (*.json);;All Files (*)"
+        )
         if file_path:
             logger.info(f"User selected filter file: {file_path}")
             filter_name = os.path.basename(file_path)
@@ -173,7 +193,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             filter = self.controller.filter_config.get_first_filter()
         else:
             logger.warning("No filter configuration available to edit")
-            QtWidgets.QMessageBox.warning(self, "No Filter Config", "No filter configuration available to edit.")
+            QtWidgets.QMessageBox.warning(
+                self, "No Filter Config", "No filter configuration available to edit."
+            )
             return
         logger.info(f"User initiated edit for filter: {filter.name}")
         dialog = EditFilterDialog(filter, is_new=False)
@@ -194,12 +216,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return
         if self.controller.filter_config is None:
             logger.warning("No filter configuration available to save")
-            QtWidgets.QMessageBox.warning(self, "No Filter Config", "No filter configuration available to save.")
+            QtWidgets.QMessageBox.warning(
+                self, "No Filter Config", "No filter configuration available to save."
+            )
             return
         file_dialog = QtWidgets.QFileDialog(self)
 
         file_dialog.setWindowTitle("Save Filter Configuration As")
-        file_path, _ = file_dialog.getSaveFileName(self, "Save Filter", "", "Json filter files (*.json);;All Files (*)")
+        file_path, _ = file_dialog.getSaveFileName(
+            self, "Save Filter", "", "Json filter files (*.json);;All Files (*)"
+        )
         if file_path:
             logger.info(f"User selected save path: {file_path}")
             self.controller.filter_config.to_file(file_path)
@@ -213,16 +239,24 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return
         if self.controller.filter_config is None:
             logger.warning("No filter configuration available to save")
-            QtWidgets.QMessageBox.warning(self, "No Filter Config", "No filter configuration available to save.")
+            QtWidgets.QMessageBox.warning(
+                self, "No Filter Config", "No filter configuration available to save."
+            )
             return
         if self.controller.filter_file_path:
             try:
                 self.controller.filter_config.to_file(self.controller.filter_file_path)
-                QtWidgets.QMessageBox.information(self, "Save Filter", "Filter configuration saved successfully.")
-                logger.info(f"Filter configuration saved to: {self.controller.filter_file_path}")
+                QtWidgets.QMessageBox.information(
+                    self, "Save Filter", "Filter configuration saved successfully."
+                )
+                logger.info(
+                    f"Filter configuration saved to: {self.controller.filter_file_path}"
+                )
             except Exception as e:
                 logger.error(f"Error saving filter configuration: {e}")
-                QtWidgets.QMessageBox.critical(self, "Save Error", f"Error saving filter configuration: {e}")
+                QtWidgets.QMessageBox.critical(
+                    self, "Save Error", f"Error saving filter configuration: {e}"
+                )
         else:
             logger.info("No filter file path set, using save as dialog")
             self.save_filter_as()
