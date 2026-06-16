@@ -60,17 +60,18 @@ class Filter:
     def matches(self, line: str) -> bool:
         """Check if the line matches the filter conditions."""
         if not self.case_sensitive:
-            line = line.lower()
+            haystack = line.lower()
             filter_strings = [s.lower() for s in self.filter_strings]
         else:
+            haystack = line
             filter_strings = self.filter_strings
         match self.logical_operator:
             case LogicalOperator.AND:
-                return self._matches_and(line, filter_strings)
+                return self._matches_and(line, haystack, filter_strings)
             case LogicalOperator.OR:
-                return self._matches_or(line, filter_strings)
+                return self._matches_or(line, haystack, filter_strings)
             case LogicalOperator.NOT:
-                return self._matches_not(line, filter_strings)
+                return self._matches_not(line, haystack, filter_strings)
             case _:
                 raise ValueError(f"Unknown logical operator: {self.logical_operator}")
 
@@ -78,20 +79,22 @@ class Filter:
         """Get a string representation of the filter strings, each string separated by a new line."""
         return "\n".join(self.filter_strings) if self.filter_strings else None
 
-    def _matches_and(self, line: str, filter_strings: list[str]) -> bool:
-        return all(sub_filter.matches(line) for sub_filter in self.sub_filters) and all(
-            sub_str in line for sub_str in filter_strings
-        )
+    def _matches_and(
+        self, line: str, haystack: str, filter_strings: list[str]
+    ) -> bool:
+        return all(
+            sub_filter.matches(line) for sub_filter in self.sub_filters
+        ) and all(sub_str in haystack for sub_str in filter_strings)
 
-    def _matches_or(self, line: str, filter_strings: list[str]) -> bool:
-        return any(sub_filter.matches(line) for sub_filter in self.sub_filters) or any(
-            sub_str in line for sub_str in filter_strings
-        )
+    def _matches_or(self, line: str, haystack: str, filter_strings: list[str]) -> bool:
+        return any(
+            sub_filter.matches(line) for sub_filter in self.sub_filters
+        ) or any(sub_str in haystack for sub_str in filter_strings)
 
-    def _matches_not(self, line: str, filter_strings: list[str]) -> bool:
+    def _matches_not(self, line: str, haystack: str, filter_strings: list[str]) -> bool:
         return not any(
             sub_filter.matches(line) for sub_filter in self.sub_filters
-        ) and not any(sub_str in line for sub_str in filter_strings)
+        ) and not any(sub_str in haystack for sub_str in filter_strings)
 
     def __repr__(self):
         return (

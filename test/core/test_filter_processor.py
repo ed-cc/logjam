@@ -60,3 +60,17 @@ def test_file_filter_processor_missing_config_or_path():
     processor = FileFilterProcessor()
     with pytest.raises(ValueError):
         processor.process_filters("any")
+
+
+def test_filtered_lines_not_shared_between_instances():
+    file_path = make_input_file()
+    config = FilterConfig()
+    config.add_filter(
+        Filter(name="f", logical_operator=LogicalOperator.OR, filter_strings=["foo"])
+    )
+    a = FileFilterProcessor(filter_config=config, file_path=file_path)
+    b = FileFilterProcessor(filter_config=config, file_path=file_path)
+    a.process_filters("f")
+    # b has not processed anything; its results must be independent of a's.
+    assert a.filtered_lines is not b.filtered_lines
+    assert b.filtered_lines == []

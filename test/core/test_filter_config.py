@@ -33,6 +33,36 @@ def test_filter_matches_not_or():
     assert not f.matches("foo baz")
 
 
+def test_case_sensitive_propagates_to_sub_filters():
+    # Parent is case-insensitive, but its case-sensitive sub-filter must still
+    # see the original (un-lowercased) line.
+    sub = Filter(
+        name="sub",
+        logical_operator=LogicalOperator.OR,
+        case_sensitive=True,
+        filter_strings=["ERROR"],
+    )
+    parent = Filter(
+        name="parent",
+        logical_operator=LogicalOperator.OR,
+        case_sensitive=False,
+        sub_filters=[sub],
+    )
+    assert parent.matches("an ERROR occurred")
+    assert not parent.matches("an error occurred")
+
+
+def test_case_insensitive_matching():
+    f = Filter(
+        name="ci",
+        logical_operator=LogicalOperator.OR,
+        case_sensitive=False,
+        filter_strings=["error"],
+    )
+    assert f.matches("ERROR here")
+    assert f.matches("Error here")
+
+
 def test_filter_config_add_and_get():
     config = FilterConfig()
     f = Filter(

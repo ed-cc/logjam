@@ -17,13 +17,14 @@ class FileFilterProcessor:
 
     filter_config: FilterConfig | None
     file_path: str | None
-    filtered_lines: list[FilteredLine] = []
+    filtered_lines: list[FilteredLine]
 
     def __init__(
         self, filter_config: FilterConfig | None = None, file_path: str | None = None
     ):
         self.filter_config = filter_config
         self.file_path = file_path
+        self.filtered_lines = []
 
     def process_filters(self, filter_name: str | None) -> list[FilteredLine]:
         """Process the filters and return filtered lines."""
