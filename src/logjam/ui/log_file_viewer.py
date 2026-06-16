@@ -1,6 +1,15 @@
 from PyQt6.QtCore import Qt, QRect
-from PyQt6.QtWidgets import QPlainTextEdit, QWidget
-from PyQt6.QtGui import QFont, QColor, QPainter, QPaintEvent, QResizeEvent
+from PyQt6.QtWidgets import QPlainTextEdit, QTextEdit, QWidget
+from PyQt6.QtGui import (
+    QFont,
+    QColor,
+    QPainter,
+    QPaintEvent,
+    QResizeEvent,
+    QTextCharFormat,
+    QTextCursor,
+    QTextDocument,
+)
 
 
 class QLogFileViewer(QPlainTextEdit):
@@ -32,6 +41,41 @@ class QLogFileViewer(QPlainTextEdit):
         self._line_numbers = [fl.line_number for fl in filtered_lines]
         self.setPlainText("\n".join(fl.line_content for fl in filtered_lines))
         self.update_number_bar_width()
+
+    def highlight_matches(self, text: str) -> int:
+        """Highlight every occurrence of ``text`` and return the match count."""
+        selections = []
+        if text:
+            color = QColor("#665c00") if self.is_dark_theme else QColor("#fff2a8")
+            fmt = QTextCharFormat()
+            fmt.setBackground(color)
+            document = self.document()
+            cursor = QTextCursor(document)
+            while True:
+                cursor = document.find(text, cursor)
+                if cursor.isNull():
+                    break
+                selection = QTextEdit.ExtraSelection()
+                selection.format = fmt
+                selection.cursor = cursor
+                selections.append(selection)
+        self.setExtraSelections(selections)
+        return len(selections)
+
+    def find_next(
+        self, text: str, forward: bool = True, from_start: bool = False
+    ) -> bool:
+        """Move the cursor to the next match of ``text``; return True on a hit."""
+        if not text:
+            return False
+        flags = QTextDocument.FindFlag(0)
+        if not forward:
+            flags |= QTextDocument.FindFlag.FindBackward
+        if from_start:
+            cursor = self.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.Start)
+            self.setTextCursor(cursor)
+        return self.find(text, flags)
 
     def line_number_for_block(self, block_number: int) -> int:
         """Return the original source line number for a displayed block.

@@ -1,9 +1,9 @@
 import sys
 import logging
 
-from PyQt6 import QtWidgets, uic
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPalette
+from PyQt6 import QtGui, QtWidgets, uic
+from PyQt6.QtCore import Qt, QSettings
+from PyQt6.QtGui import QPalette, QKeySequence, QShortcut
 from PyQt6.QtWidgets import QDialog
 
 from logjam.core.filter_config import Filter
@@ -46,8 +46,102 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self._setup_status_bar()
         self._setup_filter_panel()
+        self._setup_find_bar()
+        self._setup_recent_files_menu()
+
+        self.settings = QSettings("LogJam", "LogJamApp")
+        self._restore_window_state()
 
         logger.info("MainWindow initialization completed")
+
+    def _setup_find_bar(self):
+        """Create the hidden find bar shown with Ctrl+F."""
+        self.find_bar = QtWidgets.QWidget()
+        row = QtWidgets.QHBoxLayout(self.find_bar)
+        row.setContentsMargins(2, 2, 2, 2)
+        row.addWidget(QtWidgets.QLabel("Find:"))
+        self.find_input = QtWidgets.QLineEdit()
+        self.find_input.textChanged.connect(self._on_find_text_changed)
+        self.find_input.returnPressed.connect(lambda: self._find(forward=True))
+        row.addWidget(self.find_input)
+        self.find_count_label = QtWidgets.QLabel("")
+        row.addWidget(self.find_count_label)
+        prev_button = QtWidgets.QPushButton("Previous")
+        prev_button.clicked.connect(lambda: self._find(forward=False))
+        next_button = QtWidgets.QPushButton("Next")
+        next_button.clicked.connect(lambda: self._find(forward=True))
+        close_button = QtWidgets.QPushButton("Close")
+        close_button.clicked.connect(self.hide_find_bar)
+        row.addWidget(prev_button)
+        row.addWidget(next_button)
+        row.addWidget(close_button)
+
+        self.centralwidget.layout().addWidget(self.find_bar)
+        self.find_bar.hide()
+
+        self.find_action = QtGui.QAction("Find", self)
+        self.find_action.setShortcut("Ctrl+F")
+        self.find_action.triggered.connect(self.show_find_bar)
+        self.addAction(self.find_action)
+        self.menuView.addAction(self.find_action)
+
+        QShortcut(QKeySequence("Escape"), self.find_bar, activated=self.hide_find_bar)
+
+    def show_find_bar(self):
+        self.find_bar.show()
+        self.find_input.setFocus()
+        self.find_input.selectAll()
+        self._on_find_text_changed(self.find_input.text())
+
+    def hide_find_bar(self):
+        self.find_bar.hide()
+        self.textBrowser.highlight_matches("")
+
+    def _on_find_text_changed(self, text):
+        count = self.textBrowser.highlight_matches(text)
+        self.find_count_label.setText(f"{count} matches" if text else "")
+        if text:
+            self.textBrowser.find_next(text, forward=True, from_start=True)
+
+    def _find(self, forward=True):
+        self.textBrowser.find_next(self.find_input.text(), forward=forward)
+
+    def _setup_recent_files_menu(self):
+        """Add an 'Open Recent' submenu populated from persisted history."""
+        self.recent_menu = self.menuFile.addMenu("Open Recent")
+        self.recent_menu.aboutToShow.connect(self._populate_recent_files_menu)
+
+    def _populate_recent_files_menu(self):
+        self.recent_menu.clear()
+        recent = self.controller.recent_files() if self.controller else []
+        if not recent:
+            empty = self.recent_menu.addAction("(No recent files)")
+            empty.setEnabled(False)
+            return
+        for path in recent:
+            action = self.recent_menu.addAction(path)
+            action.triggered.connect(lambda _checked, p=path: self._open_recent(p))
+
+    def _open_recent(self, path):
+        if not self.controller:
+            return
+        file_name = os.path.basename(path)
+        self.setWindowTitle(f"LogJam - {file_name}")
+        self.update_status_bar(file_name=file_name)
+        self.controller.open_file(path)
+
+    def _restore_window_state(self):
+        geometry = self.settings.value("window_geometry")
+        if geometry is not None:
+            self.restoreGeometry(geometry)
+        state = self.settings.value("window_state")
+        if state is not None:
+            self.restoreState(state)
+
+    def closeEvent(self, event):
+        self.settings.setValue("window_geometry", self.saveGeometry())
+        self.settings.setValue("window_state", self.saveState())
+        super().closeEvent(event)
 
     def _setup_filter_panel(self):
         """Create the dockable panel that lists and manages filters."""

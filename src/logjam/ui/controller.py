@@ -54,6 +54,7 @@ class AppController:
             logger.info(f"Opening file: {file_path}")
             self.last_opened_file = file_path
             self.settings.setValue("last_opened_file", file_path)
+            self._add_recent_file(file_path)
             worker = Worker(self._open_file_task)
             worker.signals.finished.connect(self._update_text_window)
             self.threadpool.start(worker)
@@ -144,6 +145,25 @@ class AppController:
         worker = Worker(self._run_filter_processing)
         worker.signals.finished.connect(self._update_text_window)
         self.threadpool.start(worker)
+
+    MAX_RECENT_FILES = 5
+
+    def recent_files(self) -> list[str]:
+        """Return the most-recently opened files, newest first."""
+        value = self.settings.value("recent_files", [])
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [value]
+        return list(value)
+
+    def _add_recent_file(self, file_path: str):
+        recent = self.recent_files()
+        if file_path in recent:
+            recent.remove(file_path)
+        recent.insert(0, file_path)
+        del recent[self.MAX_RECENT_FILES :]
+        self.settings.setValue("recent_files", recent)
 
     def _open_file_task(self):
         logger.info(f"Processing file task for: {self.last_opened_file}")
