@@ -1,0 +1,13 @@
+2026-06-16 08:00:01 INFO  Starting service on port 8080
+2026-06-16 08:00:02 INFO  Connected to database
+2026-06-16 08:01:13 WARNING Disk usage at 82%
+2026-06-16 08:02:45 ERROR Failed to process request 500 /api/orders
+2026-06-16 08:02:46 INFO  Retrying request /api/orders
+2026-06-16 08:03:10 ERROR Database connection lost
+2026-06-16 08:03:11 CRITICAL Service entering degraded mode
+2026-06-16 08:04:00 INFO  Request completed 200 /api/health
+2026-06-16 08:05:22 WARNING Slow query detected (1200ms)
+2026-06-16 08:06:30 ERROR Upstream timeout 504 /api/payments
+2026-06-16 08:07:00 INFO  Background job finished
+2026-06-16 08:08:15 ALERT Memory pressure high
+2026-06-16 08:09:01 FATAL Unrecoverable error, shutting down

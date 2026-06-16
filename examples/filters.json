@@ -1,0 +1,66 @@
+{
+    "filters": [
+        {
+            "name": "Errors",
+            "logical_operator": "OR",
+            "regex": false,
+            "case_sensitive": false,
+            "filter_strings": [
+                "error",
+                "critical",
+                "fatal"
+            ],
+            "filters": []
+        },
+        {
+            "name": "Warnings and Alerts",
+            "logical_operator": "OR",
+            "regex": false,
+            "case_sensitive": false,
+            "filter_strings": [
+                "warning",
+                "alert"
+            ],
+            "filters": []
+        },
+        {
+            "name": "HTTP 5xx (regex)",
+            "logical_operator": "OR",
+            "regex": true,
+            "case_sensitive": false,
+            "filter_strings": [
+                "\\s5\\d{2}\\s"
+            ],
+            "filters": []
+        },
+        {
+            "name": "Errors excluding timeouts",
+            "logical_operator": "AND",
+            "regex": false,
+            "case_sensitive": false,
+            "filter_strings": [],
+            "filters": [
+                {
+                    "name": "is-error",
+                    "logical_operator": "OR",
+                    "regex": false,
+                    "case_sensitive": false,
+                    "filter_strings": [
+                        "ERROR"
+                    ],
+                    "filters": []
+                },
+                {
+                    "name": "not-timeout",
+                    "logical_operator": "NOT",
+                    "regex": false,
+                    "case_sensitive": false,
+                    "filter_strings": [
+                        "timeout"
+                    ],
+                    "filters": []
+                }
+            ]
+        }
+    ]
+}
