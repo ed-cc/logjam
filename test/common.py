@@ -5,13 +5,15 @@ import tempfile
 
 def make_filter_config_file():
     config = {
-        "filter": {
-            "name": "testfilter",
-            "logical_operator": "OR",
-            "regex": False,
-            "filter_strings": ["foo", "bar"],
-            "filters": [],
-        }
+        "filters": [
+            {
+                "name": "testfilter",
+                "logical_operator": "OR",
+                "regex": False,
+                "filter_strings": ["foo", "bar"],
+                "filters": [],
+            }
+        ]
     }
     fd, path = tempfile.mkstemp(suffix=".json", text=True)
     with os.fdopen(fd, "w") as f:

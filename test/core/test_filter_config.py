@@ -50,13 +50,15 @@ def test_filter_config_add_and_get():
 
 def test_filter_config_from_dict_and_json():
     data = {
-        "filter": {
-            "name": "f1",
-            "logical_operator": "AND",
-            "regex": False,
-            "filter_strings": ["x", "y"],
-            "filters": [],
-        }
+        "filters": [
+            {
+                "name": "f1",
+                "logical_operator": "AND",
+                "regex": False,
+                "filter_strings": ["x", "y"],
+                "filters": [],
+            }
+        ]
     }
     config = FilterConfig.from_dict(data)
     f = config.get_filter_by_name("f1")
@@ -68,6 +70,30 @@ def test_filter_config_from_dict_and_json():
     config2 = FilterConfig.from_json(json_str)
     f2 = config2.get_filter_by_name("f1")
     assert f2.name == "f1"
+
+
+def test_filter_config_multiple_filters_round_trip():
+    config = FilterConfig()
+    config.add_filter(
+        Filter(name="a", logical_operator=LogicalOperator.OR, filter_strings=["1"])
+    )
+    config.add_filter(
+        Filter(name="b", logical_operator=LogicalOperator.AND, filter_strings=["2"])
+    )
+
+    restored = FilterConfig.from_json(config.to_json())
+
+    # Both filters survive serialization and order is preserved.
+    assert list(restored.filters.keys()) == ["a", "b"]
+    assert restored.get_filter_by_name("a").filter_strings == ["1"]
+    assert restored.get_filter_by_name("b").logical_operator == LogicalOperator.AND
+
+
+def test_filter_config_from_dict_requires_filters_list():
+    with pytest.raises(ValueError):
+        FilterConfig.from_dict({"filter": {"name": "x"}})
+    with pytest.raises(ValueError):
+        FilterConfig.from_dict({"filters": "not-a-list"})
 
 
 def test_filter_config_to_from_file(tmp_path):

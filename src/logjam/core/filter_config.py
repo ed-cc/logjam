@@ -125,14 +125,16 @@ class FilterConfig:
 
     @classmethod
     def from_dict(cls, data: dict):
+        if not isinstance(data, dict):
+            raise ValueError("Configuration data must be a dictionary.")
+        filters = data.get("filters")
+        if filters is None:
+            raise ValueError("Configuration must contain a 'filters' list.")
+        if not isinstance(filters, list):
+            raise ValueError("'filters' must be a list.")
         config = cls()
-        for key, data in data.items():
-            match key:
-                case "filter":
-                    filter = Filter.from_dict(data)
-                    config.add_filter(filter)
-                case _:
-                    raise ValueError(f"Unknown key in configuration: {key}")
+        for filter_data in filters:
+            config.add_filter(Filter.from_dict(filter_data))
         return config
 
     @classmethod
@@ -197,7 +199,7 @@ class FilterConfig:
             dict: A dictionary representation of the FilterConfig.
         """
         return {
-            "filter": filter_obj.to_dict() for _, filter_obj in self.filters.items()
+            "filters": [filter_obj.to_dict() for filter_obj in self.filters.values()]
         }
 
     def to_json(self) -> str:
