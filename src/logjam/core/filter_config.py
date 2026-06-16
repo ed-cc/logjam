@@ -244,6 +244,40 @@ class FilterConfig:
         self.filters[name] = filter_obj
         return self
 
+    def filter_names(self) -> list[str]:
+        """Return the names of all filters in insertion order."""
+        return list(self.filters.keys())
+
+    def remove_filter(self, name: str):
+        """Remove a filter by name.
+
+        Raises:
+            ValueError: If no filter with the given name exists.
+        """
+        if name not in self.filters:
+            raise ValueError(f"Filter with name '{name}' does not exist")
+        del self.filters[name]
+
+    def replace_filter(self, old_name: str, new_filter: Filter):
+        """Replace an existing filter, preserving its position.
+
+        Supports renaming (``new_filter.name`` may differ from ``old_name``).
+
+        Raises:
+            ValueError: If ``old_name`` does not exist, or if the new name
+                collides with a different existing filter.
+        """
+        if old_name not in self.filters:
+            raise ValueError(f"Filter with name '{old_name}' does not exist")
+        if new_filter.name != old_name and new_filter.name in self.filters:
+            raise ValueError(f"Filter with name '{new_filter.name}' already exists")
+        self.filters = {
+            (new_filter.name if key == old_name else key): (
+                new_filter if key == old_name else value
+            )
+            for key, value in self.filters.items()
+        }
+
     def get_filter_by_name(self, name: str) -> Filter:
         """
         Get a filter by its name.

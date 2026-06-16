@@ -2,10 +2,11 @@ import sys
 import logging
 
 from PyQt6 import QtWidgets, uic
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPalette
 from PyQt6.QtWidgets import QDialog
 
-from logjam.core.filter_config import Filter, FilterConfig
+from logjam.core.filter_config import Filter
 from logjam.core.logical_operator import LogicalOperator
 from logjam.ui.MainWindow import Ui_MainWindow
 from logjam.ui.controller import AppController
@@ -44,8 +45,75 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.actionSave_As.setShortcut("Ctrl+Shift+S")
 
         self._setup_status_bar()
+        self._setup_filter_panel()
 
         logger.info("MainWindow initialization completed")
+
+    def _setup_filter_panel(self):
+        """Create the dockable panel that lists and manages filters."""
+        self.filter_dock = QtWidgets.QDockWidget("Filters", self)
+        self.filter_dock.setObjectName("filterDock")
+
+        container = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(container)
+        layout.setContentsMargins(4, 4, 4, 4)
+
+        self.filter_list = QtWidgets.QListWidget()
+        self.filter_list.currentItemChanged.connect(self._on_filter_selected)
+        self.filter_list.itemDoubleClicked.connect(lambda _item: self.edit_filter())
+        layout.addWidget(self.filter_list)
+
+        button_row = QtWidgets.QHBoxLayout()
+        self.add_filter_button = QtWidgets.QPushButton("New")
+        self.add_filter_button.clicked.connect(self.new_filter)
+        self.edit_filter_button = QtWidgets.QPushButton("Edit")
+        self.edit_filter_button.clicked.connect(self.edit_filter)
+        self.duplicate_filter_button = QtWidgets.QPushButton("Duplicate")
+        self.duplicate_filter_button.clicked.connect(self.duplicate_filter)
+        self.remove_filter_button = QtWidgets.QPushButton("Remove")
+        self.remove_filter_button.clicked.connect(self.remove_filter)
+        for button in (
+            self.add_filter_button,
+            self.edit_filter_button,
+            self.duplicate_filter_button,
+            self.remove_filter_button,
+        ):
+            button_row.addWidget(button)
+        layout.addLayout(button_row)
+
+        self.filter_dock.setWidget(container)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.filter_dock)
+        self.menuView.addAction(self.filter_dock.toggleViewAction())
+        self.refresh_filter_panel()
+
+    def refresh_filter_panel(self):
+        """Rebuild the filter list to match the controller's configuration."""
+        if not hasattr(self, "filter_list"):
+            return
+        names = []
+        if self.controller and self.controller.filter_config:
+            names = self.controller.filter_config.filter_names()
+
+        self.filter_list.blockSignals(True)
+        self.filter_list.clear()
+        self.filter_list.addItems(names)
+        active = self.controller.active_filter_name if self.controller else None
+        if active in names:
+            self.filter_list.setCurrentRow(names.index(active))
+        self.filter_list.blockSignals(False)
+
+        has_filters = bool(names)
+        self.edit_filter_button.setEnabled(has_filters)
+        self.duplicate_filter_button.setEnabled(has_filters)
+        self.remove_filter_button.setEnabled(has_filters)
+
+    def _on_filter_selected(self, current, _previous):
+        if current and self.controller:
+            self.controller.set_active_filter(current.text())
+
+    def _selected_filter_name(self):
+        item = self.filter_list.currentItem()
+        return item.text() if item else None
 
     def _setup_status_bar(self):
         """Initialize the status bar with permanent widgets"""
@@ -171,17 +239,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not self.controller:
             logger.warning("Controller not set")
             return
-        filter = Filter("Filter 1", LogicalOperator.OR)
+        default_name = self.controller._unique_name("Filter 1")
+        filter = Filter(default_name, LogicalOperator.OR)
         logger.debug("Created new filter with default settings")
         dialog = EditFilterDialog(filter, is_new=True)
         dialog.exec()
         logger.debug("EditFilterDialog executed")
         if dialog.result() == QDialog.DialogCode.Accepted:
             logger.info("User accepted new filter dialog")
-            filter_config = FilterConfig()
-            filter_config.add_filter(filter)
-            self.controller.set_filter_config(filter_config, is_new=True)
-            logger.info("New filter configuration set in controller")
+            try:
+                self.controller.add_filter(filter)
+            except ValueError as exc:
+                QtWidgets.QMessageBox.warning(self, "Duplicate Filter", str(exc))
+                return
+            logger.info("New filter added to controller")
         else:
             logger.info("User cancelled new filter dialog")
 
@@ -189,26 +260,50 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not self.controller:
             logger.warning("Controller not set")
             return
-        if self.controller.filter_config is not None:
-            filter = self.controller.filter_config.get_first_filter()
-        else:
-            logger.warning("No filter configuration available to edit")
+        name = self._selected_filter_name()
+        if name is None and self.controller.filter_config is not None:
+            names = self.controller.filter_config.filter_names()
+            name = names[0] if names else None
+        if name is None:
+            logger.warning("No filter available to edit")
             QtWidgets.QMessageBox.warning(
-                self, "No Filter Config", "No filter configuration available to edit."
+                self, "No Filter", "No filter selected to edit."
             )
             return
+        filter = self.controller.filter_config.get_filter_by_name(name)
         logger.info(f"User initiated edit for filter: {filter.name}")
         dialog = EditFilterDialog(filter, is_new=False)
         dialog.exec()
         logger.debug("EditFilterDialog executed")
         if dialog.result() == QDialog.DialogCode.Accepted:
             logger.info("User accepted edit filter dialog")
-            filter_config = FilterConfig()
-            filter_config.add_filter(filter)
-            self.controller.set_filter_config(filter_config)
-            logger.info("Edited filter configuration set in controller")
+            try:
+                self.controller.replace_filter(name, filter)
+            except ValueError as exc:
+                QtWidgets.QMessageBox.warning(self, "Rename Failed", str(exc))
+                return
+            logger.info("Edited filter saved to controller")
         else:
             logger.info("User cancelled edit filter dialog")
+
+    def duplicate_filter(self):
+        if not self.controller:
+            return
+        name = self._selected_filter_name()
+        if name:
+            self.controller.duplicate_filter(name)
+
+    def remove_filter(self):
+        if not self.controller:
+            return
+        name = self._selected_filter_name()
+        if not name:
+            return
+        confirm = QtWidgets.QMessageBox.question(
+            self, "Remove Filter", f"Remove filter '{name}'?"
+        )
+        if confirm == QtWidgets.QMessageBox.StandardButton.Yes:
+            self.controller.remove_filter(name)
 
     def save_filter_as(self):
         if not self.controller:
