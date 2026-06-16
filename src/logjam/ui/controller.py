@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class WorkerSignals(QObject):
-    finished = pyqtSignal(str)
+    finished = pyqtSignal(object)
 
 
 class Worker(QRunnable):
@@ -94,12 +94,10 @@ class AppController:
             logger.warning("_load_filters_task called but last_opened_config is None")
             return ""
 
-    def _update_text_window(self, result):
-        logger.info(f"Updating text window with {len(result)} characters")
-        self.main_window.textBrowser.setText(result)
-
-        line_count = len(result.splitlines()) if result else 0
-        self.main_window.update_status_bar(line_count=line_count)
+    def _update_text_window(self, filtered_lines):
+        logger.info(f"Updating text window with {len(filtered_lines)} lines")
+        self.main_window.textBrowser.set_filtered_lines(filtered_lines)
+        self.main_window.update_status_bar(line_count=len(filtered_lines))
 
     def _run_filter_processing(self):
         if not self.file_filter_processor:
@@ -112,11 +110,10 @@ class AppController:
         ):
             logger.info("Running filter processing with config and file path")
             filtered_lines = self.file_filter_processor.process_filters(None)
-            result = "\n".join(line.line_content for line in filtered_lines)
             logger.info(
                 f"Filter processing completed, {len(filtered_lines)} lines filtered"
             )
-            return result
+            return filtered_lines
         else:
             logger.info("Skipping filter processing - missing config or file path")
-            return ""
+            return []

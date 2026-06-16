@@ -7,14 +7,40 @@ class QLogFileViewer(QPlainTextEdit):
     def __init__(self, parent=None, is_dark_theme: bool = False):
         super().__init__(parent)
         self.is_dark_theme = is_dark_theme
+        self._line_numbers: list[int] = []
         self.setReadOnly(True)
         self.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
         self.number_bar = self.NumberBar(self)
         self.update_number_bar_width()
 
     def setText(self, text: str):
-        """Compatibility method for QTextBrowser interface"""
+        """Compatibility method for QTextBrowser interface.
+
+        Clears any original line-number mapping so the gutter falls back to
+        sequential numbering.
+        """
+        self._line_numbers = []
         self.setPlainText(text)
+        self.update_number_bar_width()
+
+    def set_filtered_lines(self, filtered_lines):
+        """Display filtered lines, keeping each line's original source number.
+
+        ``filtered_lines`` is a sequence of objects exposing ``line_number``
+        and ``line_content`` (e.g. :class:`FilteredLine`).
+        """
+        self._line_numbers = [fl.line_number for fl in filtered_lines]
+        self.setPlainText("\n".join(fl.line_content for fl in filtered_lines))
+        self.update_number_bar_width()
+
+    def line_number_for_block(self, block_number: int) -> int:
+        """Return the original source line number for a displayed block.
+
+        Falls back to 1-based sequential numbering when no mapping is set.
+        """
+        if 0 <= block_number < len(self._line_numbers):
+            return self._line_numbers[block_number]
+        return block_number + 1
 
     def resizeEvent(self, e: QResizeEvent | None):
         """Handle resize events to update number bar position"""
@@ -94,7 +120,9 @@ class QLogFileViewer(QPlainTextEdit):
                     self.editor.fontMetrics().height(),
                 )
                 painter.drawText(
-                    paint_rect, Qt.AlignmentFlag.AlignRight, str(blockNumber + 1)
+                    paint_rect,
+                    Qt.AlignmentFlag.AlignRight,
+                    str(self.editor.line_number_for_block(blockNumber)),
                 )
 
                 block = block.next()
@@ -104,8 +132,11 @@ class QLogFileViewer(QPlainTextEdit):
             QWidget.paintEvent(self, a0)
 
         def getWidth(self):
-            count = self.editor.blockCount()
-            width = self.fontMetrics().horizontalAdvance(str(count)) + 10
+            # Size for the largest line number actually shown so original
+            # source numbers (which may exceed the block count) still fit.
+            last_block = self.editor.blockCount() - 1
+            largest = self.editor.line_number_for_block(last_block)
+            width = self.fontMetrics().horizontalAdvance(str(largest)) + 10
             return width
 
         def updateWidth(self):

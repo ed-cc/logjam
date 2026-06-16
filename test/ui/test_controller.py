@@ -30,9 +30,9 @@ def test_run_filter_processing_combines_file_and_config(qtbot):
     controller.file_filter_processor.file_path = make_input_file()
     controller.file_filter_processor.filter_config = config
 
-    result = controller._run_filter_processing()
-    assert "foo bar baz" in result
-    assert "baz qux" not in result
+    contents = [fl.line_content for fl in controller._run_filter_processing()]
+    assert "foo bar baz" in contents
+    assert "baz qux" not in contents
 
 
 def test_open_file_then_load_filter_updates_view(qtbot):
