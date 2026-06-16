@@ -1,4 +1,5 @@
 import json
+import re
 from logjam.core.logical_operator import LogicalOperator
 
 
@@ -37,8 +38,6 @@ class Filter:
             not isinstance(f, Filter) for f in sub_filters
         ):
             raise ValueError("All items in filters must be instances of Filter.")
-        if regex:
-            raise NotImplementedError("Regex filtering is not yet implemented.")
         self.name = name
         self.logical_operator = logical_operator
         self.regex = regex
@@ -59,42 +58,40 @@ class Filter:
 
     def matches(self, line: str) -> bool:
         """Check if the line matches the filter conditions."""
-        if not self.case_sensitive:
-            haystack = line.lower()
-            filter_strings = [s.lower() for s in self.filter_strings]
-        else:
-            haystack = line
-            filter_strings = self.filter_strings
+        results = [sub_filter.matches(line) for sub_filter in self.sub_filters]
+        results += [self._string_matches(s, line) for s in self.filter_strings]
         match self.logical_operator:
             case LogicalOperator.AND:
-                return self._matches_and(line, haystack, filter_strings)
+                return all(results)
             case LogicalOperator.OR:
-                return self._matches_or(line, haystack, filter_strings)
+                return any(results)
             case LogicalOperator.NOT:
-                return self._matches_not(line, haystack, filter_strings)
+                return not any(results)
             case _:
                 raise ValueError(f"Unknown logical operator: {self.logical_operator}")
+
+    def _string_matches(self, pattern: str, line: str) -> bool:
+        """Test a single filter string against a line.
+
+        When ``regex`` is set the string is treated as a regular expression
+        (matched with ``re.search``); otherwise it is a plain substring test.
+        ``case_sensitive`` is honoured in both modes.
+        """
+        if self.regex:
+            flags = 0 if self.case_sensitive else re.IGNORECASE
+            try:
+                return re.search(pattern, line, flags) is not None
+            except re.error as exc:
+                raise ValueError(
+                    f"Invalid regular expression {pattern!r}: {exc}"
+                ) from exc
+        if self.case_sensitive:
+            return pattern in line
+        return pattern.lower() in line.lower()
 
     def filter_strings_representation(self) -> str | None:
         """Get a string representation of the filter strings, each string separated by a new line."""
         return "\n".join(self.filter_strings) if self.filter_strings else None
-
-    def _matches_and(
-        self, line: str, haystack: str, filter_strings: list[str]
-    ) -> bool:
-        return all(
-            sub_filter.matches(line) for sub_filter in self.sub_filters
-        ) and all(sub_str in haystack for sub_str in filter_strings)
-
-    def _matches_or(self, line: str, haystack: str, filter_strings: list[str]) -> bool:
-        return any(
-            sub_filter.matches(line) for sub_filter in self.sub_filters
-        ) or any(sub_str in haystack for sub_str in filter_strings)
-
-    def _matches_not(self, line: str, haystack: str, filter_strings: list[str]) -> bool:
-        return not any(
-            sub_filter.matches(line) for sub_filter in self.sub_filters
-        ) and not any(sub_str in haystack for sub_str in filter_strings)
 
     def __repr__(self):
         return (

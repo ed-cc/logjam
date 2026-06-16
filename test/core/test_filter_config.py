@@ -63,6 +63,65 @@ def test_case_insensitive_matching():
     assert f.matches("Error here")
 
 
+def test_regex_matching_basic():
+    f = Filter(
+        name="re",
+        logical_operator=LogicalOperator.OR,
+        regex=True,
+        filter_strings=[r"\d{3}-\d{4}"],
+    )
+    assert f.matches("call 555-1234 now")
+    assert not f.matches("no number here")
+
+
+def test_regex_case_sensitivity():
+    sensitive = Filter(
+        name="cs",
+        logical_operator=LogicalOperator.OR,
+        regex=True,
+        case_sensitive=True,
+        filter_strings=["ERROR"],
+    )
+    assert sensitive.matches("ERROR")
+    assert not sensitive.matches("error")
+
+    insensitive = Filter(
+        name="ci",
+        logical_operator=LogicalOperator.OR,
+        regex=True,
+        case_sensitive=False,
+        filter_strings=["ERROR"],
+    )
+    assert insensitive.matches("error")
+
+
+def test_regex_round_trips_through_json():
+    config = FilterConfig()
+    config.add_filter(
+        Filter(
+            name="r",
+            logical_operator=LogicalOperator.OR,
+            regex=True,
+            filter_strings=[r"^\d+"],
+        )
+    )
+    restored = FilterConfig.from_json(config.to_json())
+    f = restored.get_filter_by_name("r")
+    assert f.regex is True
+    assert f.matches("123 abc")
+
+
+def test_invalid_regex_raises_value_error():
+    f = Filter(
+        name="bad",
+        logical_operator=LogicalOperator.OR,
+        regex=True,
+        filter_strings=["("],
+    )
+    with pytest.raises(ValueError):
+        f.matches("anything")
+
+
 def test_filter_config_add_and_get():
     config = FilterConfig()
     f = Filter(
