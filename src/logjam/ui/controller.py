@@ -39,16 +39,13 @@ class AppController:
         self.main_window = main_window
         self.threadpool = QThreadPool()
         self.settings = QSettings("LogJam", "LogJamApp")
-        self.last_opened_file = self.settings.value("last_opened_file", "")
+        self.last_opened_file = self.settings.value("last_opened_file", "") or None
+        self.filter_file_path = None
         self.file_content = ""
         self.file_filter_processor = FileFilterProcessor()
 
         logger.info("AppController initialized")
         logger.info(f"Last opened file: {self.last_opened_file}")
-
-        worker = Worker(self._setup_file_filter_processor)
-        worker.signals.finished.connect(self._update_text_window)
-        self.threadpool.start(worker)
 
     def open_file(self, file_path: Optional[str] = None):
         if file_path:
@@ -96,13 +93,6 @@ class AppController:
         else:
             logger.warning("_load_filters_task called but last_opened_config is None")
             return ""
-
-    def _setup_file_filter_processor(
-        self, config_path: Optional[str] = None, file_path: Optional[str] = None
-    ):
-        logger.info("Setting up file filter processor")
-        self.file_filter_processor = FileFilterProcessor(self.filter_config, file_path)
-        return self._run_filter_processing()
 
     def _update_text_window(self, result):
         logger.info(f"Updating text window with {len(result)} characters")
