@@ -53,6 +53,28 @@ class EditFilterDialog(QtWidgets.QDialog):
         if self.filter and self.filter.case_sensitive:
             self.filter_criteria_case_sensitive.setChecked(self.filter.case_sensitive)
 
+        # Working copy of nested sub-filters, written back on accept.
+        self.sub_filters = list(self.filter.sub_filters) if self.filter else []
+        self.sub_filter_label = QtWidgets.QLabel("Sub-filters:")
+        self.sub_filter_list = QtWidgets.QListWidget(self)
+        self.sub_filter_list.itemDoubleClicked.connect(
+            lambda _item: self._edit_sub_filter()
+        )
+
+        sub_button_row = QtWidgets.QHBoxLayout()
+        self.add_sub_button = QtWidgets.QPushButton("Add Sub-filter", self)
+        self.add_sub_button.clicked.connect(self._add_sub_filter)
+        self.edit_sub_button = QtWidgets.QPushButton("Edit Sub-filter", self)
+        self.edit_sub_button.clicked.connect(self._edit_sub_filter)
+        self.remove_sub_button = QtWidgets.QPushButton("Remove Sub-filter", self)
+        self.remove_sub_button.clicked.connect(self._remove_sub_filter)
+        for button in (
+            self.add_sub_button,
+            self.edit_sub_button,
+            self.remove_sub_button,
+        ):
+            sub_button_row.addWidget(button)
+
         self.main_layout.addWidget(self.filter_name_label)
         self.main_layout.addWidget(self.filter_name_input)
         self.main_layout.addWidget(self.filter_logic_label)
@@ -61,6 +83,10 @@ class EditFilterDialog(QtWidgets.QDialog):
         self.main_layout.addWidget(self.filter_criteria_input)
         self.main_layout.addWidget(self.filter_criteria_regex)
         self.main_layout.addWidget(self.filter_criteria_case_sensitive)
+        self.main_layout.addWidget(self.sub_filter_label)
+        self.main_layout.addWidget(self.sub_filter_list)
+        self.main_layout.addLayout(sub_button_row)
+        self._refresh_sub_filter_list()
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.StandardButton.Ok
         )
@@ -68,6 +94,47 @@ class EditFilterDialog(QtWidgets.QDialog):
         self.main_layout.addWidget(self.button_box)
         self.button_box.addButton(QtWidgets.QDialogButtonBox.StandardButton.Cancel)
         self.button_box.rejected.connect(self.reject)
+
+    def _refresh_sub_filter_list(self):
+        self.sub_filter_list.clear()
+        for sub in self.sub_filters:
+            self.sub_filter_list.addItem(sub.name)
+        has_selection = bool(self.sub_filters)
+        self.edit_sub_button.setEnabled(has_selection)
+        self.remove_sub_button.setEnabled(has_selection)
+
+    def _unique_sub_name(self, base: str) -> str:
+        existing = {sub.name for sub in self.sub_filters}
+        name = base
+        counter = 2
+        while name in existing:
+            name = f"{base} {counter}"
+            counter += 1
+        return name
+
+    def _add_sub_filter(self):
+        new_sub = Filter(self._unique_sub_name("Sub-filter 1"), LogicalOperator.OR)
+        dialog = EditFilterDialog(new_sub, parent=self, is_new=True)
+        dialog.exec()
+        if dialog.result() == QtWidgets.QDialog.DialogCode.Accepted:
+            self.sub_filters.append(new_sub)
+            self._refresh_sub_filter_list()
+
+    def _edit_sub_filter(self):
+        row = self.sub_filter_list.currentRow()
+        if row < 0:
+            return
+        dialog = EditFilterDialog(self.sub_filters[row], parent=self, is_new=False)
+        dialog.exec()
+        if dialog.result() == QtWidgets.QDialog.DialogCode.Accepted:
+            self._refresh_sub_filter_list()
+
+    def _remove_sub_filter(self):
+        row = self.sub_filter_list.currentRow()
+        if row < 0:
+            return
+        del self.sub_filters[row]
+        self._refresh_sub_filter_list()
 
     def accept(self):
         """Override accept to validate and save the filter."""
@@ -79,13 +146,19 @@ class EditFilterDialog(QtWidgets.QDialog):
             return
 
         logical_operator = self.filter_logic_input.currentText()
-        filter_strings = self.filter_criteria_input.toPlainText().strip().splitlines()
+        filter_strings = [
+            s.strip()
+            for s in self.filter_criteria_input.toPlainText().splitlines()
+            if s.strip()
+        ]
         regex = self.filter_criteria_regex.isChecked()
         case_sensitive = self.filter_criteria_case_sensitive.isChecked()
 
-        if not filter_strings or all(not s.strip() for s in filter_strings):
+        if not filter_strings and not self.sub_filters:
             QtWidgets.QMessageBox.warning(
-                self, "Invalid Input", "Filter criteria cannot be empty."
+                self,
+                "Invalid Input",
+                "A filter needs at least one criterion or sub-filter.",
             )
             return
 
@@ -93,7 +166,8 @@ class EditFilterDialog(QtWidgets.QDialog):
         self.filter.logical_operator = LogicalOperator(logical_operator)
         self.filter.regex = regex
         self.filter.case_sensitive = case_sensitive
-        self.filter.filter_strings = [s.strip() for s in filter_strings if s.strip()]
+        self.filter.filter_strings = filter_strings
+        self.filter.sub_filters = self.sub_filters
 
         super().accept()
         self.done(QtWidgets.QDialog.DialogCode.Accepted)
